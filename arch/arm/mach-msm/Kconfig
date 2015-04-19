@@ -23,7 +23,7 @@ config ARCH_MSM7X27
 	bool "MSM7x27"
 	select ARCH_MSM_ARM11 if MSM_SOC_REV_NONE
 	select ARCH_HAS_BARRIERS if MSM_SOC_REV_NONE
-	select ARCH_MSM_CORTEX_A5 if MSM_SOC_REV_A
+#	select ARCH_MSM_CORTEX_A5 if MSM_SOC_REV_A
 	select MSM_VIC
 	select CPU_V6 if MSM_SOC_REV_NONE
 	select CPU_V7 if MSM_SOC_REV_A
@@ -317,7 +317,7 @@ config ARCH_MSM9615
 	bool "MSM9615"
 	select ARM_GIC
 	select GIC_SECURE
-	select ARCH_MSM_CORTEX_A5
+#	select ARCH_MSM_CORTEX_A5
 	select CPU_V7
 	select GPIO_MSM_V2
 	select MSM_GPIOMUX
@@ -337,7 +337,7 @@ config ARCH_MSM9615
 
 config ARCH_MSM8625
 	bool "MSM8625"
-	select ARCH_MSM_CORTEX_A5
+#	select ARCH_MSM_CORTEX_A5
 	select CPU_V7
 	select GPIO_MSM_V1
 	select MSM_GPIOMUX
@@ -354,7 +354,7 @@ config ARCH_MSM9625
 	select ARM_GIC
 	select GIC_SECURE
 	select MIGHT_HAVE_CACHE_L2X0
-	select ARCH_MSM_CORTEX_A5
+#	select ARCH_MSM_CORTEX_A5
 	select SMP
 	select MSM_SMP
 	select CPU_V7
