@@ -398,6 +398,14 @@ static int msm_ipc_router_ioctl(struct socket *sock,
 		if (server_arg.num_entries_in_array) {
 			srv_info_sz = server_arg.num_entries_in_array *
 					sizeof(*srv_info);
+			if ((srv_info_sz / sizeof(*srv_info)) !=
+			    server_arg.num_entries_in_array) {
+				pr_err("%s: Integer Overflow %d * %d\n",
+					__func__, sizeof(*srv_info),
+					server_arg.num_entries_in_array);
+				ret = -EINVAL;
+				break;
+			}
 			srv_info = kmalloc(srv_info_sz, GFP_KERNEL);
 			if (!srv_info) {
 				ret = -ENOMEM;
@@ -414,16 +422,20 @@ static int msm_ipc_router_ioctl(struct socket *sock,
 			break;
 		}
 		server_arg.num_entries_found = ret;
-
 		ret = copy_to_user((void *)arg, &server_arg,
 				   sizeof(server_arg));
-		if (srv_info_sz) {
+
+		n = min(server_arg.num_entries_found,
+			server_arg.num_entries_in_array);
+
+		if (ret == 0 && n) {
 			ret = copy_to_user((void *)(arg + sizeof(server_arg)),
-					   srv_info, srv_info_sz);
-			if (ret)
-				ret = -EFAULT;
-			kfree(srv_info);
+					   srv_info, n * sizeof (*srv_info));
 		}
+
+		if (ret)
+			ret = -EFAULT;
+		kfree(srv_info);
 		break;
 
 	case IPC_ROUTER_IOCTL_BIND_CONTROL_PORT:
@@ -468,11 +480,19 @@ static unsigned int msm_ipc_router_poll(struct file *file,
 static int msm_ipc_router_close(struct socket *sock)
 {
 	struct sock *sk = sock->sk;
-	struct msm_ipc_port *port_ptr = msm_ipc_sk_port(sk);
+	struct msm_ipc_port *port_ptr;
 	void *pil = msm_ipc_sk(sk)->default_pil;
 	int ret;
 
+	if (!sk)
+		return -EINVAL;
+
 	lock_sock(sk);
+	port_ptr = msm_ipc_sk_port(sk);
+	if (!port_ptr) {
+		release_sock(sk);
+		return -EINVAL;
+	}
 	ret = msm_ipc_router_close_port(port_ptr);
 	msm_ipc_unload_default_node(pil);
 	release_sock(sk);

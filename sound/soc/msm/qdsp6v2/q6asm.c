@@ -55,6 +55,7 @@
 #define READDONE_IDX_FLAGS 8
 #define READDONE_IDX_NUMFRAMES 9
 #define READDONE_IDX_SEQ_ID 10
+#define FRAME_NUM             (8)
 
 /* TODO, combine them together */
 static DEFINE_MUTEX(session_lock);
@@ -608,6 +609,8 @@ int q6asm_audio_client_buf_alloc(unsigned int dir,
 			pr_debug("%s: buffer already allocated\n", __func__);
 			return 0;
 		}
+		if (bufcnt != FRAME_NUM)
+			goto fail;
 		mutex_lock(&ac->cmd_lock);
 		buf = kzalloc(((sizeof(struct audio_buffer))*bufcnt),
 				GFP_KERNEL);
@@ -721,6 +724,12 @@ int q6asm_audio_client_buf_alloc_contiguous(unsigned int dir,
 	}
 
 	ac->port[dir].buf = buf;
+
+	if ((bufcnt > 0) && ((INT_MAX / bufcnt) < bufsz)) {
+		pr_err("%s: integer overflow", __func__);
+		mutex_unlock(&ac->cmd_lock);
+		goto fail;
+	}
 
 	buf[0].client = msm_ion_client_create(UINT_MAX, "audio_client");
 	if (IS_ERR_OR_NULL((void *)buf[0].client)) {

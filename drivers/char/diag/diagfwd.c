@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2008-2013, 2016, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -476,15 +476,24 @@ int diag_device_write(void *buf, int data_type, struct diag_request *write_ptr)
 				err = -1;
 		} else if ((data_type >= 0) &&
 				(data_type < NUM_SMD_DATA_CHANNELS)) {
-			write_ptr->buf = buf;
+			if (write_ptr) {
+				write_ptr->buf = buf;
 #ifdef DIAG_DEBUG
-			printk(KERN_INFO "writing data to USB,"
-				"pkt length %d\n", write_ptr->length);
-			print_hex_dump(KERN_DEBUG, "Written Packet Data to"
-					   " USB: ", 16, 1, DUMP_PREFIX_ADDRESS,
-					    buf, write_ptr->length, 1);
+				printk(KERN_INFO
+					"writing data to USB pkt length %d\n",
+					write_ptr->length);
+				print_hex_dump(KERN_DEBUG,
+					"Written Packet Data to"
+					" USB: ", 16, 1, DUMP_PREFIX_ADDRESS,
+					buf, write_ptr->length, 1);
 #endif /* DIAG DEBUG */
-			err = usb_diag_write(driver->legacy_ch, write_ptr);
+				err = usb_diag_write(driver->legacy_ch,
+							write_ptr);
+			} else {
+				pr_err("diag:%d: Failed to write to USB\n",
+					__LINE__);
+				err = -1;
+			}
 		}
 #ifdef CONFIG_DIAG_SDIO_PIPE
 		else if (data_type == SDIO_DATA) {
@@ -533,11 +542,16 @@ int diag_device_write(void *buf, int data_type, struct diag_request *write_ptr)
 				err = -1;
 			}
 		} else if (data_type == SMUX_DATA) {
+			if (write_ptr) {
 				write_ptr->buf = buf;
 				write_ptr->context = (void *)SMUX;
 				pr_debug("diag: writing SMUX data\n");
 				err = usb_diag_write(diag_bridge[SMUX].ch,
 								 write_ptr);
+			} else {
+				pr_err("diag:%d: Failed to write to USB\n",
+					__LINE__);
+			}
 		}
 #endif
 		APPEND_DEBUG('d');
@@ -1014,8 +1028,15 @@ void diag_process_hdlc(void *data, unsigned len)
 
 	ret = diag_hdlc_decode(&hdlc);
 
-	if (hdlc.dest_idx < 3) {
-		pr_err("diag: Integer underflow in hdlc processing\n");
+	/*
+	 * If the message is 3 bytes or less in length then the message is
+	 * too short. A message will need 4 bytes minimum, since there are
+	 * 2 bytes for the CRC and 1 byte for the ending 0x7e for the hdlc
+	 * encoding
+	 */
+	if (hdlc.dest_idx < 4) {
+		pr_err_ratelimited("diag: In %s, message is too short, len: %d,"
+			" dest len: %d\n", __func__, len, hdlc.dest_idx);
 		return;
 	}
 	if (ret) {

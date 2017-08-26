@@ -178,6 +178,7 @@ config ARCH_MSM8960
 	select MSM_KRAIT_WFE_FIXUP
 	select MSM_IOMMU_GPU_SYNC
 	select MSM_CPU_PWRCTL
+	select HAS_MACH_MEMUTILS
 
 config ARCH_MSM8930
 	bool "MSM8930"
@@ -2630,18 +2631,18 @@ config MSM_CPU_PWRCTL
 	  stand alone power collapse operation. Selecting this option
 	  ensures that they are always off.
 
+config HAS_MACH_MEMUTILS
+	default n
+	bool "Motorola MSM memcpy enhancements"
+	help
+	Faster memcpy performance for Krait
+
 config FORCE_FAST_CHARGE
 	bool "Force AC charge mode at will"
 	default y
 	help
 	  A simple sysfs interface to force adapters that
 	  are detected as USB to charge as AC.
-
-config UPDATE_LCDC_LUT
-	bool "Set initial Qualcomm LCDC lut"
-	default y
-	help
-	  Set initial Qualcomm LCDC Look Up Table.
 
 config LCD_KCAL
 	tristate "MSM generic LCDC Calibration"
